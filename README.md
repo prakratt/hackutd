@@ -1,3 +1,6 @@
+<img width="938" alt="image" src="https://github.com/user-attachments/assets/c68c7d08-1d82-4b42-adaf-2e8564bb3391">
+
+
 # Library Seating Map Application
 
 ## Overview
