@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Library Seating App</title>
+    <!-- Fix: Updated CDN links with crossorigin attribute -->
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.development.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .input-group { margin-bottom: 20px; }
+        input, select { padding: 8px; margin-right: 10px; }
+        button { 
+            padding: 8px 16px;
+            background: #4A90E2;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover { background: #357ABD; }
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .color-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .friends-list {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .seat-info {
+            background: #f5f5f5;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .stats {
+            background: #e3e3e3;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        // Note: The script type must be "text/babel" for JSX to work
+        const { useState } = React;
+
+        function LibrarySeating() {
+            const [seats, setSeats] = useState(Array(52).fill(null));
+            const [selectedSeatInfo, setSelectedSeatInfo] = useState(null);
+            const [studentInfo, setStudentInfo] = useState({
+                name: '',
+                major: '',
+                class: '',
+                timeEntered: null
+            });
+            const [currentUserSeat, setCurrentUserSeat] = useState(null);
+            const [friends, setFriends] = useState([]);
+            const [showFriendsList, setShowFriendsList] = useState(false);
+
+            const classes = ["GOVT 2306", "RHET 1302", "ECON 2301", "CHEM 1111", "HIST 2301"];
+
+            const handleSeatClick = (index) => {
+                if (seats[index]) {
+                    if (confirm('Do you want to remove this student from the seat?')) {
+                        const newSeats = [...seats];
+                        newSeats[index] = null;
+                        setSeats(newSeats);
+                        if (index === currentUserSeat) {
+                            setCurrentUserSeat(null);
+                        }
+                        setSelectedSeatInfo(null);
+                    }
+                    return;
+                }
+
+                if (studentInfo.name && studentInfo.major && studentInfo.class) {
+                    const newSeats = [...seats];
+                    newSeats[index] = {
+                        ...studentInfo,
+                        timeEntered: new Date().toISOString()
+                    };
+                    setSeats(newSeats);
+                    setCurrentUserSeat(index);
+                    setStudentInfo({ ...studentInfo, name: '', major: '' });
+                    setSelectedSeatInfo(null);
+                } else {
+                    alert('Please enter your name, major, and select a class before selecting a seat.');
+                }
+            };
+
+            const handleAddFriend = (friendInfo) => {
+                if (!friends.some(friend => friend.name === friendInfo.name)) {
+                    setFriends([...friends, friendInfo]);
+                    alert(`${friendInfo.name} has been added to your friends list!`);
+                } else {
+                    if (confirm(`Remove ${friendInfo.name} from friends?`)) {
+                        setFriends(friends.filter(friend => friend.name !== friendInfo.name));
+                    }
+                }
+            };
+
+            const getTimeDuration = (timeEntered) => {
+                if (!timeEntered) return '';
+                const duration = new Date() - new Date(timeEntered);
+                const hours = Math.floor(duration / (1000 * 60 * 60));
+                const minutes = Math.floor((duration % (1000 * 60 * 60)) / (1000 * 60));
+                return `${hours}h ${minutes}m`;
+            };
+
+            const isFriend = (seatInfo) => {
+                return friends.some(friend => friend.name === seatInfo?.name);
+            };
+
+            const getSeatColor = (index, seatInfo) => {
+                if (index === currentUserSeat) return '#008000';
+                if (seatInfo && isFriend(seatInfo)) return '#800080';
+                if (seatInfo) return '#FF0000';
+                return '#FFD700';
+            };
+
+            const renderSeat = (index, cx, cy) => (
+                <g key={index}>
+                    <circle
+                        cx={cx}
+                        cy={cy}
+                        r="10"
+                        fill={getSeatColor(index, seats[index])}
+                        stroke="black"
+                        strokeWidth="1"
+                        onClick={() => handleSeatClick(index)}
+                        onMouseEnter={() => setSelectedSeatInfo(seats[index] ? { ...seats[index], index } : null)}
+                        style={{ cursor: 'pointer' }}
+                    />
+                </g>
+            );
+
+            const renderTable = (x, y, width, height) => (
+                <rect x={x} y={y} width={width} height={height} fill="white" stroke="black" strokeWidth="2" />
+            );
+
+            const occupiedSeats = seats.filter(Boolean).length;
+            const occupancyRate = (occupiedSeats / seats.length) * 100;
+
+            const classStats = classes.reduce((acc, className) => {
+                const count = seats.filter(seat => seat && seat.class === className).length;
+                acc[className] = count;
+                return acc;
+            }, {});
+
+            return (
+                <div className="container">
+                    <h1>Library Seating Map</h1>
+                    
+                    <div className="input-group">
+                        <input
+                            type="text"
+                            value={studentInfo.name}
+                            onChange={(e) => setStudentInfo({ ...studentInfo, name: e.target.value })}
+                            placeholder="Your Name"
+                        />
+                        <input
+                            type="text"
+                            value={studentInfo.major}
+                            onChange={(e) => setStudentInfo({ ...studentInfo, major: e.target.value })}
+                            placeholder="Your Major"
+                        />
+                        <select
+                            value={studentInfo.class}
+                            onChange={(e) => setStudentInfo({ ...studentInfo, class: e.target.value })}
+                        >
+                            <option value="">Choose your class</option>
+                            {classes.map(className => (
+                                <option key={className} value={className}>
+                                    {className}
+                                </option>
+                            ))}
+                        </select>
+                        <button onClick={() => setShowFriendsList(!showFriendsList)}>
+                            Friends ({friends.length})
+                        </button>
+                    </div>
+
+                    <div className="legend">
+                        <div className="legend-item">
+                            <div className="color-dot" style={{background: '#FFD700'}}></div>
+                            Available
+                        </div>
+                        <div className="legend-item">
+                            <div className="color-dot" style={{background: '#FF0000'}}></div>
+                            Occupied
+                        </div>
+                        <div className="legend-item">
+                            <div className="color-dot" style={{background: '#008000'}}></div>
+                            Your Seat
+                        </div>
+                        <div className="legend-item">
+                            <div className="color-dot" style={{background: '#800080'}}></div>
+                            Friend
+                        </div>
+                    </div>
+
+                    {showFriendsList && friends.length > 0 && (
+                        <div className="friends-list">
+                            <h3>Friends in the Library</h3>
+                            {friends.map((friend, index) => (
+                                <div key={index}>
+                                    <span>{friend.name}</span>
+                                    <button 
+                                        onClick={() => handleAddFriend(friend)}
+                                        style={{marginLeft: '10px', background: '#dc3545'}}
+                                    >
+                                        Remove
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    <svg viewBox="0 0 600 400" style={{border: '1px solid #ccc', width: '100%', maxWidth: '800px'}}>
+                        {/* Left circular table */}
+                        {[...Array(14)].map((_, i) => {
+                            const angle = (i * 2 * Math.PI) / 14;
+                            return renderSeat(i, 100 + 60 * Math.cos(angle), 200 + 60 * Math.sin(angle));
+                        })}
+                        
+                        {/* Top tables */}
+                        {renderTable(200, 50, 150, 40)}
+                        {renderTable(400, 50, 150, 40)}
+                        {[...Array(12)].map((_, i) => renderSeat(14 + i, 225 + (i % 6) * 25, i < 6 ? 40 : 100))}
+                        {[...Array(12)].map((_, i) => renderSeat(26 + i, 425 + (i % 6) * 25, i < 6 ? 40 : 100))}
+                        
+                        {/* Middle table */}
+                        {renderTable(250, 180, 150, 40)}
+                        {[...Array(12)].map((_, i) => renderSeat(38 + i, 275 + (i % 6) * 25, i < 6 ? 170 : 230))}
+                        
+                        {/* Right table */}
+                        {renderTable(500, 150, 40, 200)}
+                        {[...Array(14)].map((_, i) => renderSeat(50 + i, i % 2 === 0 ? 490 : 550, 170 + Math.floor(i / 2) * 25))}
+                    </svg>
+
+                    {selectedSeatInfo && (
+                        <div className="seat-info">
+                            <h3>Seat Information</h3>
+                            <p>Seat: {selectedSeatInfo.index + 1}</p>
+                            <p>Name: {selectedSeatInfo.name}</p>
+                            <p>Major: {selectedSeatInfo.major}</p>
+                            <p>Class: {selectedSeatInfo.class}</p>
+                            <p>Duration: {getTimeDuration(selectedSeatInfo.timeEntered)}</p>
+                            {selectedSeatInfo.index !== currentUserSeat && !isFriend(selectedSeatInfo) && (
+                                <button onClick={() => handleAddFriend(selectedSeatInfo)}>
+                                    Add Friend
+                                </button>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="stats">
+                        <h3>Library Statistics</h3>
+                        <p>Occupancy: {occupiedSeats} out of {seats.length} seats ({occupancyRate.toFixed(1)}% full)</p>
+                        <h4>Class Distribution:</h4>
+                        {Object.entries(classStats).map(([className, count]) => (
+                            <p key={className}>{className}: {count} students</p>
+                        ))}
+                    </div>
+                </div>
+            );
+        }
+
+        // Fix: Updated ReactDOM.render to createRoot API
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<LibrarySeating />);
+    </script>
+</body>
+</html>
