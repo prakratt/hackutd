@@ -1,4 +1,4 @@
-<img width="938" alt="image" src="https://github.com/user-attachments/assets/c68c7d08-1d82-4b42-adaf-2e8564bb3391">
+<img width="931" alt="image" src="https://github.com/user-attachments/assets/8d6d1a57-fbe7-4d14-88b0-34b7d306e9f5">
 
 
 # Library Seating Map Application
